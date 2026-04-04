@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 use iroh::{endpoint::presets, Endpoint, EndpointId, EndpointAddr};
 use tracing::{info, warn};
+use std::time::Duration;
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -16,10 +17,12 @@ enum Commands {
 
     /// Connect to another node by EndpointId (z32 format)
     Connect {
-        /// EndpointId of the peer (z32 string)
+        /// EndpointId of the peer
         endpoint_id: String,
     },
 }
+
+const ALPN: &[u8] = b"muspell/0.1";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -27,69 +30,96 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let args = Args::parse();
 
-    // Create endpoint with the standard N0 preset (includes relay + discovery)
     let endpoint = Endpoint::builder(presets::N0)
         .bind()
         .await
-        .map_err(|e| format!("Failed to bind Iroh endpoint: {}", e))?;
+        .map_err(|e| format!("Failed to bind endpoint: {}", e))?;
 
     let my_id = endpoint.id();
 
     info!(" Muspell Daemon started");
     info!("   My EndpointID : {}", my_id);
 
-    // Show addressing info (without Debug issues)
     let addr = endpoint.addr();
     info!("   Relay URLs    : {:?}", addr.relay_urls().collect::<Vec<_>>());
     info!("   Direct IPs    : {:?}", addr.ip_addrs().collect::<Vec<_>>());
 
     match args.command {
         Commands::Run => {
-            info!("Running in daemon mode — waiting for incoming connections...");
-            info!("Share your EndpointID with others so they can connect.");
+            info!(" Listening for incoming connections...");
+            info!("   Share this command with the other machine:");
+            info!("   cargo run -p muspell-daemon -- connect {}", my_id);
 
-            // Keep the program alive
-            tokio::signal::ctrl_c().await?;
-            info!("Shutting down...");
+            while let Some(incoming) = endpoint.accept().await {
+                let connecting = match incoming.accept() {
+                    Ok(connecting) => connecting,
+                    Err(e) => {
+                        warn!("Failed to accept incoming: {}", e);
+                        continue;
+                    }
+                };
+
+                tokio::spawn(async move {
+                    match connecting.await {
+                        Ok(conn) => {
+                            info!("📥 New connection from {}", conn.remote_id());
+                            // Correct way to close in iroh 0.97
+                            conn.close(0u32.into(), b"closed by muspell");
+                        }
+                        Err(e) => warn!("Failed to establish connection: {}", e),
+                    }
+                });
+            }
         }
 
         Commands::Connect { endpoint_id } => {
-            let peer_id: EndpointId = endpoint_id.parse()
-                .map_err(|_| "Invalid EndpointID format. Must be a valid z32 string.")?;
+            let peer_id: EndpointId = match endpoint_id.parse() {
+                Ok(id) => id,
+                Err(_) => {
+                    warn!("Invalid EndpointID format");
+                    return Ok(());
+                }
+            };
 
-            info!("Attempting to connect to {}", peer_id);
+            info!(" Attempting to connect to {}", peer_id);
 
-            // Convert EndpointId to EndpointAddr (required in 0.97+)
             let peer_addr = EndpointAddr::from(peer_id);
 
-            // Connect requires an ALPN protocol (byte slice) to identify the application
-            // We'll use a simple custom ALPN for this minimal example
-            const ALPN: &[u8] = b"muspell/0.1";
+            match tokio::time::timeout(
+                Duration::from_secs(60),
+                endpoint.connect(peer_addr, ALPN),
+            ).await {
+                Ok(Ok(connection)) => {
+                    info!(" Connected to {}", peer_id);
 
-            match endpoint.connect(peer_addr, ALPN).await {
-                Ok(connection) => {
-                    info!("Successfully connected to {}", peer_id);
+                    let (mut send, mut recv) = match connection.open_bi().await {
+                        Ok(s) => s,
+                        Err(e) => {
+                            warn!("Failed to open bi-directional stream: {}", e);
+                            return Ok(());
+                        }
+                    };
 
-                    // Open a bidirectional stream
-                    let (mut send, mut recv) = connection.open_bi().await?;
+                    // Send greeting
+                    if let Err(e) = send.write_all(b"Hello from Muspell Daemon!").await {
+                        warn!("Failed to send message: {}", e);
+                    }
+                    if let Err(e) = send.finish() {
+                        warn!("Failed to finish send: {}", e);
+                    }
 
-                    // Send a simple greeting
-                    send.write_all(b"Hello from Muspell Daemon!").await?;
-                    send.finish()?;
+                    info!(" Sent greeting");
 
-                    info!("Sent greeting message");
-
-                    // Optional: read any response
-                    let mut buf = vec![0u8; 1024];
+                    // Read any response
+                    let mut buf = vec![0u8; 512];
                     if let Ok(Some(n)) = recv.read(&mut buf).await {
                         if n > 0 {
-                            info!("Received: {}", String::from_utf8_lossy(&buf[..n]));
+                            info!(" Received: {}", String::from_utf8_lossy(&buf[0..n]));
                         }
                     }
                 }
-                Err(e) => {
-                    warn!("Failed to connect: {}", e);
-                }
+                Ok(Err(e)) => warn!(" Connection failed: {}", e),
+                Err(_) => warn!(" Connection timed out after 60 seconds"),
             }
         }
     }
