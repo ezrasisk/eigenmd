@@ -1,0 +1,33 @@
+[package]
+name        = "muspell-proto"
+description = "Canonical wire types for the Muspell decentralised network protocol"
+version.workspace     = true
+edition.workspace     = true
+authors.workspace     = true
+repository.workspace  = true
+
+# ── Features ─────────────────────────────────────────────────────────────────
+#
+# `clock`  — enables Timestamp::now() via std::time::SystemTime.
+#            Disable for deterministic/embedded environments.
+# `rand`   — enables FrameId::random() via the `rand` crate.
+#            Disable when IDs are sourced externally (e.g. from a CSPRNG
+#            managed by the transport layer).
+#
+[features]
+default = ["clock", "rand"]
+clock   = []
+rand    = ["dep:rand"]
+
+[dependencies]
+serde-big-array.workspace = true
+serde.workspace           = true
+blake3.workspace          = true
+sha2.workspace            = true
+bs58.workspace            = true
+hex.workspace             = true
+rand                      = { workspace = true, optional = true }
+
+[dev-dependencies]
+# ciborium used in tests to verify round-trip CBOR encoding
+ciborium = "0.2"
