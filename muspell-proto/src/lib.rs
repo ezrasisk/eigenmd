@@ -32,6 +32,7 @@
 
 pub mod types;
 pub mod capability;
+pub mod frame;
 
 // Re-export all public primitives at crate root for ergonomic imports:
 //   use muspell_proto::{Did, ContentId, …};
@@ -43,4 +44,13 @@ pub use types::{
 pub use capability::{
     Action, ActionSet, AttenuationError, Capability, CapabilityError, CapabilityId,
     ResourceId, MAX_CHAIN_DEPTH,
+};
+
+pub use frame::{
+    AnnounceFrame, ByteRange, DeleteAckFrame, DeleteFrame, ErrorCode, ErrorFrame,
+    ExtensionFrame, Frame, FrameAuth, FrameBody, GetFrame, GetResponseFrame, GetResult,
+    GoodbyeFrame, HelloAckFrame, HelloFrame, MessageAckFrame, MessageFrame, MessageStatus,
+    NodeCapabilities, PingFrame, PongFrame, PutFrame, QueryFrame, QueryKind,
+    QueryResponseFrame, QueryResult, StreamChannel, StreamCloseFrame, StreamDataFrame,
+    StreamKind, StreamOpenFrame,
 };
