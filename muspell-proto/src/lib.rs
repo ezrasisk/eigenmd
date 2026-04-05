@@ -33,6 +33,7 @@
 pub mod types;
 pub mod capability;
 pub mod frame;
+pub mod namespace;
 
 // Re-export all public primitives at crate root for ergonomic imports:
 //   use muspell_proto::{Did, ContentId, …};
@@ -54,3 +55,10 @@ pub use frame::{
     QueryResponseFrame, QueryResult, StreamChannel, StreamCloseFrame, StreamDataFrame,
     StreamKind, StreamOpenFrame,
 };
+
+pub use namespace::{
+    Namespace, NamespaceError, NamespaceIndex, NamespacePath, NamespacePathError,
+    NamespaceRecord, RecordKey, RecordKeyError, RecordValue,
+};
+/// Protocol-reserved well-known record key constants.
+pub use namespace::well_known;
