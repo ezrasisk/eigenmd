@@ -2,7 +2,6 @@ use clap::{Parser, Subcommand};
 use iroh::{endpoint::presets, Endpoint, EndpointId};
 use tracing::{info, warn};
 
-//  Single source of truth — both sides MUST use identical bytes
 const ALPN: &[u8] = b"/muspell/0.1";
 
 #[derive(Parser)]
