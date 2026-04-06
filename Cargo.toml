@@ -3,7 +3,8 @@ members = [
     "muspell-daemon",
     "muspell-proto",
     "muspell-identity",
-    #"muspell-transport",
+    "muspell-transport",
+    "muspell-rpc",
 ]
 resolver = "2"
 
@@ -31,3 +32,4 @@ tracing            = "0.1"
 tracing-subscriber = "0.3"
 serde-big-array    = "0.5"
 ciborium           = "0.2"
+async-trait        = "0.1"
