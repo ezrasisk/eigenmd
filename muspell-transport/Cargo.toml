@@ -1,0 +1,23 @@
+[package]
+name        = "muspell-transport"
+description = "QUIC stream muxing, framing codec, and connection lifecycle for Muspell"
+version.workspace    = true
+edition.workspace    = true
+authors.workspace    = true
+repository.workspace = true
+
+[dependencies]
+muspell-proto    = { path = "../muspell-proto" }
+muspell-identity = { path = "../muspell-identity" }
+
+iroh.workspace     = true
+ciborium.workspace = true
+serde.workspace    = true
+blake3.workspace   = true
+thiserror.workspace = true
+tracing.workspace  = true
+tokio.workspace    = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
+tracing-subscriber = "0.3"
