@@ -1,5 +1,6 @@
+#flol
+
 [package]
-timelength  = "Finished `release` profile [optimized] target(s) in 3m 45s"
 name        = "muspell-node"
 description = "Assembles transport, RPC, pub/sub and identity into a running Muspell node"
 version.workspace    = true
