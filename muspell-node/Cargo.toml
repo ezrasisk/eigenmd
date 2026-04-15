@@ -14,7 +14,6 @@ muspell-identity  = { path = "../muspell-identity" }
 muspell-transport = { path = "../muspell-transport" }
 muspell-rpc       = { path = "../muspell-rpc" }
 muspell-pubsub    = { path = "../muspell-pubsub" }
-muspell-node      = { path = "../muspell-node" }
 
 async-trait.workspace  = true
 dashmap.workspace      = true
